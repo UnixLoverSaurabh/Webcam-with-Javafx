@@ -7,8 +7,6 @@ import java.util.ResourceBundle;
 import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
@@ -42,20 +40,17 @@ public class Controller implements Initializable {
     FlowPane fpBottomPane;
     @FXML
     ImageView imgWebCamCapturedImage;
+
     private BufferedImage grabbedImage;
-    //	private WebcamPanel selWebCamPanel = null;
     private Webcam selWebCam = null;
     private boolean stopCamera = false;
-    private ObjectProperty<Image> imageProperty = new SimpleObjectProperty<Image>();
-
-    private String cameraListPromptText = "Choose Camera";
+    private ObjectProperty<Image> imageProperty = new SimpleObjectProperty<>();
 
     @Override
     public void initialize(URL arg0, ResourceBundle arg1) {
 
         fpBottomPane.setDisable(true);
-        ObservableList<WebCamInfo> options = FXCollections.observableArrayList(
-        );
+        ObservableList<WebCamInfo> options = FXCollections.observableArrayList();
         int webCamCounter = 0;
         for (Webcam webcam : Webcam.getWebcams()) {
             WebCamInfo webCamInfo = new WebCamInfo();
@@ -65,16 +60,12 @@ public class Controller implements Initializable {
             webCamCounter++;
         }
         cbCameraOptions.setItems(options);
-        cbCameraOptions.setPromptText(cameraListPromptText);
-        cbCameraOptions.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<WebCamInfo>() {
+        cbCameraOptions.setPromptText("Choose Camera");
+        cbCameraOptions.getSelectionModel().selectedItemProperty().addListener((arg01, arg11, arg2) -> {
+            if (arg2 != null) {
 
-            @Override
-            public void changed(ObservableValue<? extends WebCamInfo> arg0, WebCamInfo arg1, WebCamInfo arg2) {
-                if (arg2 != null) {
-
-                    System.out.println("WebCam Index: " + arg2.getWebCamIndex() + ": WebCam Name:" + arg2.getWebCamName());
-                    initializeWebCam(arg2.getWebCamIndex());
-                }
+                System.out.println("WebCam Index: " + arg2.getWebCamIndex() + ": WebCam Name:" + arg2.getWebCamName());
+                initializeWebCam(arg2.getWebCamIndex());
             }
         });
         Platform.runLater(new Runnable() {
@@ -89,7 +80,7 @@ public class Controller implements Initializable {
 
     }
 
-    protected void setImageViewSize() {
+    private void setImageViewSize() {
 
         double height = bpWebCamPaneHolder.getHeight();
         double width = bpWebCamPaneHolder.getWidth();
@@ -101,12 +92,12 @@ public class Controller implements Initializable {
 
     }
 
-    protected void initializeWebCam(final int webCamIndex) {
+    private void initializeWebCam(final int webCamIndex) {
 
-        Task<Void> webCamIntilizer = new Task<Void>() {
+        Task<Void> webCamInitializer = new Task<Void>() {
 
             @Override
-            protected Void call() throws Exception {
+            protected Void call() {
 
                 if (selWebCam == null) {
                     selWebCam = Webcam.getWebcams().get(webCamIndex);
@@ -123,19 +114,18 @@ public class Controller implements Initializable {
 
         };
 
-        new Thread(webCamIntilizer).start();
+        new Thread(webCamInitializer).start();
         fpBottomPane.setDisable(false);
         btnStartCamera.setDisable(true);
     }
 
-    protected void startWebCamStream() {
+    private void startWebCamStream() {
 
         stopCamera = false;
         Task<Void> task = new Task<Void>() {
 
-
             @Override
-            protected Void call() throws Exception {
+            protected Void call() {
 
                 while (!stopCamera) {
                     try {
@@ -144,20 +134,17 @@ public class Controller implements Initializable {
                             Platform.runLater(new Runnable() {
                                 @Override
                                 public void run() {
-                                    final Image mainiamge = SwingFXUtils
-                                            .toFXImage(grabbedImage, null);
-                                    imageProperty.set(mainiamge);
+                                    final Image mainImage = SwingFXUtils.toFXImage(grabbedImage, null);
+                                    imageProperty.set(mainImage);
                                 }
                             });
 
                             grabbedImage.flush();
 
                         }
-                    } catch (Exception e) {
-                    } finally {
-
+                    } catch (Exception ignored) {
+                        System.out.println("Error stating webCam");
                     }
-
                 }
 
                 return null;
